@@ -36,6 +36,10 @@ import java.util.List;
 @RequestMapping(value = "${albedo.adminPath}/sys/area")
 public class AreaResource extends TreeVoResource<AreaService, AreaVo> {
 
+    public AreaResource(AreaService service) {
+        super(service);
+    }
+
     /**
      * GET / : 获取树型结构数据 区域.
      *
@@ -82,7 +86,10 @@ public class AreaResource extends TreeVoResource<AreaService, AreaVo> {
             throw new RuntimeMsgException(PublicUtil.toAppendStr("查询模块管理失败，原因：无法查找到编号区域"));
         }
         if (PublicUtil.isNotEmpty(areaVo.getParentId())) {
-            service.findOptionalTopByParentId(areaVo.getParentId()).ifPresent(item -> areaVo.setSort(item.getSort() + 30));
+            service.findOptionalTopByParentId(areaVo.getParentId()).ifPresent(item ->
+                {
+                    if(PublicUtil.isEmpty(areaVo.getId()))areaVo.setSort(item.getSort() + 30);
+                });
             service.findOneById(areaVo.getParentId()).ifPresent(item -> areaVo.setParentName(item.getName()));
         }
         if (areaVo.getSort() == null) {
@@ -115,7 +122,7 @@ public class AreaResource extends TreeVoResource<AreaService, AreaVo> {
     @Timed
     public ResponseEntity delete(@PathVariable String ids) {
         log.debug("REST request to delete Area: {}", ids);
-        service.delete(Lists.newArrayList(ids.split(StringUtil.SPLIT_DEFAULT)));
+        service.deleteByParentIds(Lists.newArrayList(ids.split(StringUtil.SPLIT_DEFAULT)), SecurityUtil.getCurrentUserId());
         return ResultBuilder.buildOk("删除区域成功");
     }
 
@@ -130,7 +137,7 @@ public class AreaResource extends TreeVoResource<AreaService, AreaVo> {
     @Timed
     public ResponseEntity lockOrUnLock(@PathVariable String ids) {
         log.debug("REST request to lockOrUnLock Area: {}", ids);
-        service.lockOrUnLock(Lists.newArrayList(ids.split(StringUtil.SPLIT_DEFAULT)));
+        service.lockOrUnLockByParentIds(Lists.newArrayList(ids.split(StringUtil.SPLIT_DEFAULT)), SecurityUtil.getCurrentUserId());
         return ResultBuilder.buildOk("操作区域成功");
     }
 

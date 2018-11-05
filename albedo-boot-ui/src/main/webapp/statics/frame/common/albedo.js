@@ -39,7 +39,7 @@ $.fn.serializeObject = function () {
             var prefix = name.substr(0, startIndex);
             tempObj = o[prefix];
             if (!tempObj) {
-                tempObj = []
+                tempObj = [];
             }
             var subName = name.substring(endIndex+2),index = name.substring(startIndex+1,endIndex);
             if(tempObj[index]){
@@ -339,16 +339,10 @@ var albedo = {
                         _json.format = $(this).attr("format") ? $(this)
                             .attr("format") : 'yyyy-MM-dd';
                     }
-                    _json.fieldNode = $(this).attr("fieldNode") ? $(this)
-                        .attr("fieldNode") : '';
                     _json.operate = $(this).attr("operate") ? $(this).attr(
                         "operate") : 'like';
                     _json.weight = $(this).attr("weight") ? $(this).attr(
                         "weight") : 0;
-                    _json.analytiColumn = $(this).attr("analytiColumn") ? $(this).attr(
-                        "analytiColumn") : true;
-                    _json.analytiColumnPrefix = $(this).attr("analytiColumnPrefix") ? $(this).attr(
-                        "analytiColumnPrefix") : null;
                     if (_json.operate == "between") {
                         var endValue = $("input[for-date='" + $(this).attr("name") + "']").val();
                         _json.endValue = endValue ? ($(this)
@@ -362,6 +356,25 @@ var albedo = {
                 }
             })
         return JSON.stringify(json_list);
+    }
+    ,
+    validateNull: function(val) {
+        if (typeof val == 'boolean') {
+            return false;
+        }
+        if (val instanceof Array) {
+            if (val.length == 0) return true;
+        } else if (val instanceof Object) {
+            if (JSON.stringify(val) === '{}') return true;
+        } else {
+            if (val == 'null' || val == null || val == 'undefined' || val == undefined || val == '') return true;
+            return false;
+        }
+        return false;
+    }
+    ,
+    validateNotNull: function(val){
+        return !albedo.validateNull(val);
     }
 };
 

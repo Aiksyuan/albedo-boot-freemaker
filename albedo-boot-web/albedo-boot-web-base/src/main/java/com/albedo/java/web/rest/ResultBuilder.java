@@ -17,11 +17,11 @@ import java.util.stream.Collectors;
  */
 public class ResultBuilder {
     public static ResponseEntity buildOk(String... messages) {
-        return new ResponseEntity(CustomMessage.createSuccess(null, messages), HttpStatus.OK);
+        return new ResponseEntity(CustomMessage.createSuccess(messages), HttpStatus.OK);
     }
 
     public static ResponseEntity buildOk(Object data, String... messages) {
-        return new ResponseEntity(CustomMessage.createSuccess(data, messages), HttpStatus.OK);
+        return new ResponseEntity(CustomMessage.createSuccessData(data, messages), HttpStatus.OK);
     }
 
     public static ResponseEntity buildFailed(String... messages) {
@@ -60,7 +60,7 @@ public class ResultBuilder {
 
     public static <X> ResponseEntity<X> wrapOrNotFound(Optional<X> maybeResponse, HttpHeaders header) {
         return (ResponseEntity) maybeResponse.map((response) -> {
-            return ((ResponseEntity.BodyBuilder) ResponseEntity.ok().headers(header)).body(response);
+            return ((ResponseEntity.BodyBuilder) ResponseEntity.ok().headers(header)).body(CustomMessage.createSuccessData(response));
         }).orElse(new ResponseEntity(HttpStatus.NOT_FOUND));
     }
 

@@ -1,9 +1,9 @@
 <div class="row">
-    <div class="col-md-2">
+    <div class="col-md-3">
     <@albedo.treeShow id="org_" title="组织机构" selectNodeId="nodeId" url="${ctx}/sys/org/findTreeData?all"
     clickNodeFn="clickTreeNodeOrg" allowCancelSelect="true" cancelClickNodeFn="cancelClickNodeOrg" nodesLevel="3"> </@albedo.treeShow>
     </div>
-    <div class="col-md-10">
+    <div class="col-md-9">
         <!-- BEGIN EXAMPLE TABLE PORTLET-->
         <div class="portlet light bordered">
             <div class="portlet-title">
@@ -30,7 +30,7 @@
                     <div class="form-group">
                         <label class="input-label" for="loginId">登录Id </label>
                         <input type="text" class="form-control" searchItem="searchItem" id="name" name="name"
-                               placeholder="..."></div>
+                               /></div>
                     <div class="form-group">
                         <label class="input-label">状态</label>
                     <@albedo.form name="status" searchItem="searchItem" dictCode="sys_status" boxType="checkbox" operate="in" attrType="Integer"> </@albedo.form>

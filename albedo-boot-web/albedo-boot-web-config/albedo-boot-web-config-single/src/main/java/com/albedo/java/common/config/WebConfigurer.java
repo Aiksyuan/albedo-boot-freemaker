@@ -10,7 +10,6 @@ import com.albedo.java.web.listener.ContextInitListener;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.servlet.InstrumentedFilter;
 import com.codahale.metrics.servlets.MetricsServlet;
-import io.undertow.UndertowOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,9 +71,9 @@ public class WebConfigurer extends WebMvcConfigurerAdapter implements ServletCon
                 DispatcherType.ASYNC);
         initPageInitParamFilter(servletContext, disps);
         initMetrics(servletContext, disps);
-        if (env.acceptsProfiles(Globals.SPRING_PROFILE_PRODUCTION)) {
+//        if (env.acceptsProfiles(Globals.SPRING_PROFILE_PRODUCTION)) {
             initCachingHttpHeadersFilter(servletContext, disps);
-        }
+//        }
 
 
         log.info("Web application fully configured");
@@ -104,13 +103,13 @@ public class WebConfigurer extends WebMvcConfigurerAdapter implements ServletCon
          * See the AlbedoProperties class and your application-*.yml configuration files
          * for more information.
          */
-        if (albedoProperties.getHttp().getVersion().equals(AlbedoProperties.Http.Version.V_2_0) &&
-                container instanceof UndertowEmbeddedServletContainerFactory) {
-
-            ((UndertowEmbeddedServletContainerFactory) container)
-                    .addBuilderCustomizers(builder ->
-                            builder.setServerOption(UndertowOptions.ENABLE_HTTP2, true));
-        }
+//        if (albedoProperties.getHttp().getVersion().equals(AlbedoProperties.Http.Version.V_2_0) &&
+//                container instanceof UndertowEmbeddedServletContainerFactory) {
+//
+//            ((UndertowEmbeddedServletContainerFactory) container)
+//                    .addBuilderCustomizers(builder ->
+//                            builder.setServerOption(UndertowOptions.ENABLE_HTTP2, true));
+//        }
 
     }
 
@@ -140,7 +139,8 @@ public class WebConfigurer extends WebMvcConfigurerAdapter implements ServletCon
         FilterRegistration.Dynamic cachingHttpHeadersFilter = servletContext.addFilter("cachingHttpHeadersFilter",
                 new CachingHttpHeadersFilter(albedoProperties));
 
-        cachingHttpHeadersFilter.addMappingForUrlPatterns(disps, true, "/statics/*", "/WEB-INF/views/*", "classpath:/statics/*", "classpath:/WEB-INF/views/*");
+        cachingHttpHeadersFilter.addMappingForUrlPatterns(disps, true, "/statics/*");
+        cachingHttpHeadersFilter.addMappingForUrlPatterns(disps, true, "/swagger-ui/*");
         cachingHttpHeadersFilter.setAsyncSupported(true);
 
     }

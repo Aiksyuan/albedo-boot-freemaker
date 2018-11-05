@@ -12,7 +12,10 @@ import com.albedo.java.util.StringUtil;
 import com.albedo.java.util.base.Reflections;
 import com.albedo.java.util.domain.Globals;
 import com.albedo.java.util.domain.PageModel;
+import com.albedo.java.util.excel.ExportExcel;
+import com.albedo.java.util.excel.ImportExcel;
 import com.albedo.java.util.exception.RuntimeMsgException;
+import com.albedo.java.vo.sys.UserExcelVo;
 import com.albedo.java.vo.sys.UserVo;
 import com.albedo.java.web.rest.ResultBuilder;
 import com.albedo.java.web.rest.base.DataVoResource;
@@ -21,6 +24,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.Lists;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,8 +32,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -78,6 +87,10 @@ public class UserResource extends DataVoResource<UserService, UserVo> {
     @Autowired
     private ModuleService moduleService;
 
+    public UserResource(UserService service) {
+        super(service);
+    }
+
 
     @GetMapping(value = "/")
     @Timed
@@ -92,23 +105,10 @@ public class UserResource extends DataVoResource<UserService, UserVo> {
      */
     @GetMapping(value = "/page")
     public ResponseEntity getPage(PageModel pm) {
-        pm = service.findPage(pm, SecurityUtil.dataScopeFilterSql("d", "a"));
-        JSON rs = JsonUtil.getInstance().setFreeFilters("roleIdList").setRecurrenceStr("org_name").toJsonObject(pm);
+        pm = service.findTablePage(pm, SecurityUtil.dataScopeFilterSql("b", "a"));
+        JSON rs = JsonUtil.getInstance()
+            .toJsonObject(pm);
         return ResultBuilder.buildObject(rs);
-    }
-
-    /**
-     * GET  /users/:id : get the "login" user.
-     *
-     * @param id the login of the user to find
-     * @return the ResponseEntity with status 200 (OK) and with body the "id" user, or with status 404 (Not Found)
-     */
-    @GetMapping("/{id:" + Globals.LOGIN_REGEX + "}")
-    @Timed
-    public ResponseEntity getUser(@PathVariable String id) {
-        log.debug("REST request to get User : {}", id);
-        return ResultBuilder.buildOk(service.findOneById(id)
-                .map(item -> service.copyBeanToVo(item)));
     }
 
 
@@ -151,14 +151,7 @@ public class UserResource extends DataVoResource<UserService, UserVo> {
             throw new RuntimeMsgException("两次输入密码不一致");
         }
         // Lowercase the user login before comparing with database
-        if (!checkByProperty(Reflections.createObj(UserVo.class, Lists.newArrayList(UserVo.F_ID, UserVo.F_LOGINID),
-                userVo.getId(), userVo.getLoginId()))) {
-            throw new RuntimeMsgException("登录Id已存在");
-        }
-        if (PublicUtil.isNotEmpty(userVo.getEmail()) && !checkByProperty(Reflections.createObj(UserVo.class,
-                Lists.newArrayList(UserVo.F_ID, UserVo.F_EMAIL), userVo.getId(), userVo.getEmail()))) {
-            throw new RuntimeMsgException("邮箱已存在");
-        }
+        service.checkProperty(userVo);
         if (PublicUtil.isNotEmpty(userVo.getId())) {
             UserVo temp = service.findOneVo(userVo.getId());
             userVo.setPassword(PublicUtil.isEmpty(userVo.getPassword()) ? temp.getPassword() : passwordEncoder.encode(userVo.getPassword()));
@@ -181,7 +174,7 @@ public class UserResource extends DataVoResource<UserService, UserVo> {
     @Timed
     public ResponseEntity delete(@PathVariable String ids) {
         log.debug("REST request to delete User: {}", ids);
-        service.delete(Lists.newArrayList(ids.split(StringUtil.SPLIT_DEFAULT)));
+        service.deleteBatchIds(Lists.newArrayList(ids.split(StringUtil.SPLIT_DEFAULT)));
         SecurityUtil.clearUserJedisCache();
         SecurityUtil.clearUserLocalCache();
         return ResultBuilder.buildOk("删除成功");
@@ -201,6 +194,55 @@ public class UserResource extends DataVoResource<UserService, UserVo> {
         SecurityUtil.clearUserJedisCache();
         SecurityUtil.clearUserLocalCache();
         return ResultBuilder.buildOk("操作成功");
+    }
+
+
+    @PostMapping(value = "/uploadData")
+    @Timed
+    public ResponseEntity uploadData(@RequestParam("uploadFile") MultipartFile dataFile, HttpServletResponse response) throws IOException, InvalidFormatException, IllegalAccessException, InstantiationException {
+        if(dataFile.isEmpty()){
+            return ResultBuilder.buildFailed("上传文件为空");
+        }
+        ImportExcel importExcel = new ImportExcel(dataFile, 1, 0);
+        List<UserExcelVo> dataList = importExcel.getDataList(UserExcelVo.class);
+        for(UserExcelVo userExcelVo : dataList){
+            if(userExcelVo.getPhone().length()!=11){
+                BigDecimal bd = new BigDecimal(userExcelVo.getPhone());
+                userExcelVo.setPhone(bd.toPlainString());
+            }
+            if (!checkByProperty(Reflections.createObj(UserVo.class, Lists.newArrayList(UserVo.F_LOGINID),
+                userExcelVo.getLoginId()))) {
+                throw new RuntimeMsgException("登录Id"+userExcelVo.getLoginId()+"已存在");
+            }
+            if (PublicUtil.isNotEmpty(userExcelVo.getPhone()) && !checkByProperty(Reflections.createObj(UserVo.class,
+                Lists.newArrayList(UserVo.F_PHONE), userExcelVo.getPhone()))) {
+                throw new RuntimeMsgException("手机"+userExcelVo.getPhone()+"已存在");
+            }
+            if (PublicUtil.isNotEmpty(userExcelVo.getEmail()) && !checkByProperty(Reflections.createObj(UserVo.class,
+                Lists.newArrayList(UserVo.F_EMAIL), userExcelVo.getEmail()))) {
+                throw new RuntimeMsgException("邮箱"+userExcelVo.getEmail()+"已存在");
+            }
+            //初始密码
+            userExcelVo.setPassword(passwordEncoder.encode("123456"));
+            service.save(userExcelVo);
+        }
+        return ResultBuilder.buildOk("操作成功");
+
+    }
+    @GetMapping(value = "/importTemplate")
+    @Timed
+    public void importTemplate(HttpServletResponse response) throws IOException {
+
+        response.setContentType("multipart/form-data");
+        String fileName = /*creatUUID()*/"用户信息导入模板" + ".xlsx";
+        // 2.设置文件头：最后一个参数是设置下载文件名
+        response.setHeader("Content-Disposition",
+            "attachment;fileName=" + java.net.URLEncoder.encode(fileName, "UTF-8"));
+        response.setCharacterEncoding("utf-8");
+
+        ExportExcel exportExcel = new ExportExcel("用户信息维护", UserExcelVo.class);
+
+        exportExcel.write(response.getOutputStream()).dispose();
     }
 
 }

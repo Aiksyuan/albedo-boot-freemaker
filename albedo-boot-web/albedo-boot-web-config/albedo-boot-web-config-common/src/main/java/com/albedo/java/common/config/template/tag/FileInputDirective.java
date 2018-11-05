@@ -1,8 +1,11 @@
 package com.albedo.java.common.config.template.tag;
 
 import com.albedo.java.common.config.AlbedoProperties;
+import com.albedo.java.modules.sys.domain.FileData;
+import com.albedo.java.modules.sys.service.FileDataService;
 import com.albedo.java.util.PublicUtil;
 import com.albedo.java.util.StringUtil;
+import com.albedo.java.util.base.Assert;
 import freemarker.core.Environment;
 import freemarker.template.TemplateDirectiveBody;
 import freemarker.template.TemplateDirectiveModel;
@@ -22,6 +25,71 @@ public class FileInputDirective implements TemplateDirectiveModel {
     private final Logger log = LoggerFactory.getLogger(FileInputDirective.class);
     @Autowired
     AlbedoProperties albedoProperties;
+    @Autowired
+    FileDataService fileDataService;
+
+    private void dealMultiple(StringBuffer sb, boolean isDisabled, boolean isImg, String name, String value, String cssClass){
+        String fileName="",path="";
+        if (isDisabled) {
+            if (PublicUtil.isNotEmpty(value)) {
+                if (value.contains(StringUtil.SPLIT_DEFAULT)) {
+                    String[] values = value.split(StringUtil.SPLIT_DEFAULT);
+                    for (int i = 0; i < values.length; i++) {
+                        FileData fileData = fileDataService.findOne(values[i]);
+                        if(fileData!=null){
+                            fileName = fileData.getName();
+                            path = fileData.getId();
+                        }
+                        sb.append("<div class=\"fileinput-exists thumbnail "+(isImg?"thumbnail-img" : "")+" fileinput-preview-div\">")
+                            .append(isImg ? ("<img src=\""+albedoProperties.getStaticUrlPath(path)+"\" alt=\"\" class=\"fileinput-item scale-img\" />")
+                                :("<span>"+fileName+"</span>")).append("</div>");
+                    }
+                } else {
+                    FileData fileData = fileDataService.findOne(value);
+                    if(fileData!=null){
+                        path = fileData.getId();
+                        fileName = fileData.getName();
+                    }
+                    sb.append("<div class=\"fileinput-exists thumbnail "+(isImg?"thumbnail-img" : "")+" fileinput-preview-div\">")
+                        .append(isImg ? ("<img src=\""+(PublicUtil.isNotEmpty(path) ? albedoProperties.getStaticUrlPath(path) : path)+"\" alt=\"\" class=\"fileinput-item scale-img\" />")
+                            :("<span>"+fileName+"</span>")).append("</div>");
+                }
+            }
+            sb.append("</div>");
+        } else {
+            if(isImg) {
+                sb.append("<div class=\"fileinput-new thumbnail fileinput-empty\"><img src=\"http://www.placehold.it/200x150/EFEFEF/AAAAAA&amp;text=请上传图片\" alt=\"\" class=\"fileinput-item\"  /></div>");
+            }
+            sb.append("<input type=\"hidden\" name=\"").append(name).append("\" value=\"").append(value)
+                .append("\" />");
+            if (PublicUtil.isNotEmpty(value)) {
+                if (value.contains(StringUtil.SPLIT_DEFAULT)) {
+                    String[] values = value.split(StringUtil.SPLIT_DEFAULT);
+                    for (int i = 0; i < values.length; i++) {
+                        FileData fileData = fileDataService.findOne(values[i]);
+                        if(fileData!=null){
+                            fileName = fileData.getName();
+                            path = fileData.getId();
+                        }
+                        sb.append("<div class=\"fileinput-exists thumbnail "+(isImg?"thumbnail-img" : "")+" fileinput-preview-div\">")
+                            .append(isImg ? ("<img src=\""+albedoProperties.getStaticUrlPath(path)
+                                +"\" alt=\"\" class=\"fileinput-item\" file-value=\""+values[i]+"\"/>")
+                                :("<span class=\"fileinput-item\" file-value=\""+values[i]+"\">"+fileName+"</span>")).append("</div>");
+                    }
+                } else {
+                    FileData fileData = fileDataService.findOne(value);
+                    if(fileData!=null){
+                        fileName = fileData.getName();
+                        path = fileData.getId();
+                    }
+                    sb.append("<div class=\"fileinput-exists thumbnail "+(isImg?"thumbnail-img" : "")+" fileinput-preview-div\">")
+                        .append(isImg ? ("<img src=\""+(PublicUtil.isNotEmpty(path) ? albedoProperties.getStaticUrlPath(path) : path)
+                            +"\" alt=\"\" class=\"fileinput-item\" file-value=\""+value+"\"/>")
+                            :("<span class=\"fileinput-item\" file-value=\""+value+"\">"+fileName+"</span>")).append("</div>");
+                }
+            }
+        }
+    }
 
     @Override
     public void execute(Environment environment, Map map, TemplateModel[] templateModels,
@@ -35,49 +103,39 @@ public class FileInputDirective implements TemplateDirectiveModel {
         sb.append("<div class=\"fileinput ")
                 .append(PublicUtil.isEmpty(value) ? "fileinput-new" : "fileinput-exists").append("\" style=\"width:100%;\" data-provides=\"fileinput\">\n");
         boolean isImage = "image".equals(type), isDisabled = "disabled".equals(disabled);
-        if (isImage) {//
-            String img = value;
-            if (isDisabled) {//
-                if (PublicUtil.isNotEmpty(img))
-                    if (img.contains(StringUtil.SPLIT_DEFAULT)) {
-                        String[] imgs = img.split(StringUtil.SPLIT_DEFAULT);
-                        for (int i = 0; i < imgs.length; i++) {
-                            sb.append("<div class=\"fileinput-exists thumbnail fileinput-preview\"><img src=\"").append(albedoProperties.getStaticUrlPath(imgs[i])).append("\" alt=\"\" class=\"fileinput-img scale-img\" /></div>");
-                        }
-                    } else {
-                        sb.append("<div class=\"fileinput-exists thumbnail fileinput-preview\"><img src=\"").
-                                append(PublicUtil.isNotEmpty(value) ? albedoProperties.getStaticUrlPath(img) : img).append("\" class=\"fileinput-img scale-img\" /></div>");
-                    }
-                sb.append("</div>");
-            } else {
-                sb.append("<div class=\"fileinput-new thumbnail fileinput-empty\"><img src=\"http://www.placehold.it/200x150/EFEFEF/AAAAAA&amp;text=请上传图片\" alt=\"\" class=\"fileinput-img\"  /></div>");
-                sb.append("<input type=\"hidden\" class=\"").append(cssClass).append(" filepath\" name=\"").append(name).append("\" value=\"").append(value)
-                        .append("\" />");
-                if (PublicUtil.isNotEmpty(img))
-                    if (img.contains(StringUtil.SPLIT_DEFAULT)) {
-                        String[] imgs = img.split(StringUtil.SPLIT_DEFAULT);
-                        for (int i = 0; i < imgs.length; i++) {
-                            sb.append("<div class=\"fileinput-exists thumbnail fileinput-preview\"><img src=\"").append(albedoProperties.getStaticUrlPath(imgs[i])).append("\" alt=\"\" class=\"fileinput-img\" img-value=\"")
-                                    .append(imgs[i]).append("\" /></div>");
-                        }
-                    } else {
-                        sb.append("<div class=\"fileinput-exists thumbnail fileinput-preview\"><img src=\"").
-                                append(PublicUtil.isNotEmpty(value) ? albedoProperties.getStaticUrlPath(img) : img).append("\" alt=\"\" class=\"fileinput-img\" img-value=\"")
-                                .append(img).append("\" /></div>");
-                    }
-            }
+        if (isImage) {
+            dealMultiple(sb, isDisabled, isImage, name, value, cssClass);
         } else {
-            sb.append("<div class=\"input-group\" style=\"width:100%;overflow:auto;\">");
-            sb.append("<input type=\"text\" class=\"form-control ").append(cssClass).append("\" ").append(isDisabled ? "disabled=\"disabled\"" : "").append("name=\"").append(name).append("\" value=\"").append(value)
-                    .append("\" />");
+            if(PublicUtil.isNotEmpty(multiple)){
+                dealMultiple(sb, isDisabled, isImage, name, value, cssClass);
+            }else{
+                FileData fileData = fileDataService.findOne(value);
+                String fileName="";
+                if(fileData!=null){
+                    fileName = fileData.getName();
+                }
+                sb.append("<div class=\"input-group\" style=\"width:100%;overflow:auto;\">");
+                sb.append("<input type=\"hidden\"  name=\"")
+                    .append(name)
+                    .append("\" value=\"").append(value).append("\" />")
+                    .append("<input type=\"text\" class=\"form-control ")
+                    .append(cssClass)
+                    .append("\" ").append(isDisabled ? "disabled=\"disabled\"" : "")
+                    .append(" value=\"").append(fileName).append("\" />");
+            }
         }
-        if (!isDisabled)
-            sb.append(isImage ? "<div class=\"btn-img-div\">" : "").append("<span class=\"btn blue btn-file\"><span class=\"fileinput-new\"> 选择")
-                    .append(isImage ? "图片" : "文件 ").append(" </span>\n")
-                    .append("<span class=\"fileinput-exists\"> 选择")
-                    .append(isImage ? "图片" : "文件 ").append(" </span><input type=\"file\" name=\"uploadFile\" showType=\"").append(type).append("\" ").append(PublicUtil.isNotEmpty(multiple) ? "multiple=\"multiple\"" : "").append("\" options=\"").append(options).append("\"></span>")
-                    .append("<span class=\"btn red fileinput-exists fileinput-remove\" data-dismiss=\"fileinput\"> ")
-                    .append(PublicUtil.isNotEmpty(multiple) ? "全部" : "").append("移除 </span></div></div>");
+        if (!isDisabled) {
+            sb.append(isImage || PublicUtil.isNotEmpty(multiple) ? "<div class=\"btn-file-div\">" : "").append("<span class=\"btn blue btn-file\"><span class=\"fileinput-new\"> 选择")
+                .append(isImage ? "图片" : "文件 ").append(" </span>\n")
+                .append("<span class=\"fileinput-exists\"> 选择")
+                .append(isImage ? "图片" : "文件 ")
+                .append(" </span><input type=\"file\" name=\"uploadFile\" showType=\"")
+                .append(type).append("\" ")
+                .append(PublicUtil.isNotEmpty(multiple) ? "multiple=\"multiple\"" : "")
+                .append("\" options=\"").append(options).append("\"></span>")
+                .append("<span class=\"btn red fileinput-exists fileinput-remove\" data-dismiss=\"fileinput\"> ")
+                .append(PublicUtil.isNotEmpty(multiple) ? "全部" : "").append("移除 </span></div></div>");
+        }
         out.write(sb.toString());
         if (templateDirectiveBody != null) {
             templateDirectiveBody.render(environment.getOut());

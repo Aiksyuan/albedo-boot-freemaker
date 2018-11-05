@@ -1,5 +1,6 @@
 package com.albedo.java.modules.sys.web;
 
+import com.albedo.java.common.security.SecurityUtil;
 import com.albedo.java.modules.sys.domain.Dict;
 import com.albedo.java.modules.sys.service.DictService;
 import com.albedo.java.util.DictUtil;
@@ -44,13 +45,14 @@ import java.util.stream.Collectors;
 @RequestMapping("${albedo.adminPath}/sys/dict")
 public class DictResource extends TreeVoResource<DictService, DictVo> {
 
-    @Resource
-    private DictService dictService;
+    public DictResource(DictService service) {
+        super(service);
+    }
 
 
     @GetMapping(value = "findTreeData")
     public ResponseEntity findTreeData(DictTreeQuery dictTreeQuery) {
-        List<DictTreeResult> rs = dictService.findTreeData(dictTreeQuery, DictUtil.getDictList());
+        List<DictTreeResult> rs = service.findTreeData(dictTreeQuery, DictUtil.getDictList());
         return ResultBuilder.buildOk(rs);
     }
 
@@ -81,7 +83,7 @@ public class DictResource extends TreeVoResource<DictService, DictVo> {
     @GetMapping(value = "/page")
     public ResponseEntity getPage(PageModel<Dict> pm) {
         pm.setSortDefaultName(Direction.DESC, Dict.F_SORT, Dict.F_LASTMODIFIEDDATE);
-        dictService.findPage(pm);
+        service.findPage(pm);
         JSON rs = JsonUtil.getInstance().setRecurrenceStr("parent_name").toJsonObject(pm);
         return ResultBuilder.buildObject(rs);
     }
@@ -93,8 +95,11 @@ public class DictResource extends TreeVoResource<DictService, DictVo> {
             throw new RuntimeMsgException("无法获取字典数据");
         }
         if (PublicUtil.isNotEmpty(dictVo.getParentId())) {
-            dictService.findOptionalTopByParentId(dictVo.getParentId()).ifPresent(item -> dictVo.setSort(item.getSort() + 30));
-            dictService.findOneById(dictVo.getParentId()).ifPresent(item -> dictVo.setParentName(item.getName()));
+            service.findOptionalTopByParentId(dictVo.getParentId()).ifPresent(item ->
+            {
+                if(PublicUtil.isEmpty(dictVo.getId()))dictVo.setSort(item.getSort() + 30);
+            });
+            service.findOneById(dictVo.getParentId()).ifPresent(item -> dictVo.setParentName(item.getName()));
         }
         if (dictVo.getSort() == null) {
             dictVo.setSort(30);
@@ -114,10 +119,10 @@ public class DictResource extends TreeVoResource<DictService, DictVo> {
         log.debug("REST request to save Dict : {}", dictVo);
         // Lowercase the dictVo login before comparing with database
         if (!checkByProperty(Reflections.createObj(DictVo.class, Lists.newArrayList(DictVo.F_ID, DictVo.F_CODE),
-                dictVo.getId(), dictVo.getName()))) {
+                dictVo.getId(), dictVo.getCode()))) {
             throw new RuntimeMsgException("编码已存在");
         }
-        dictService.save(dictVo);
+        service.save(dictVo);
         DictUtil.clearCache();
         return ResultBuilder.buildOk("保存", dictVo.getName(), "成功");
     }
@@ -131,7 +136,7 @@ public class DictResource extends TreeVoResource<DictService, DictVo> {
     @Timed
     public ResponseEntity delete(@PathVariable String ids) {
         log.debug("REST request to delete Dict: {}", ids);
-        dictService.delete(Lists.newArrayList(ids.split(StringUtil.SPLIT_DEFAULT)));
+        service.deleteByParentIds(Lists.newArrayList(ids.split(StringUtil.SPLIT_DEFAULT)), SecurityUtil.getCurrentUserId());
         DictUtil.clearCache();
         return ResultBuilder.buildOk("删除成功");
     }
@@ -142,7 +147,7 @@ public class DictResource extends TreeVoResource<DictService, DictVo> {
     @Timed
     public ResponseEntity lockOrUnLock(@PathVariable String ids) {
         log.debug("REST request to lockOrUnLock User: {}", ids);
-        dictService.lockOrUnLock(Lists.newArrayList(ids.split(StringUtil.SPLIT_DEFAULT)));
+        service.lockOrUnLockByParentIds(Lists.newArrayList(ids.split(StringUtil.SPLIT_DEFAULT)), SecurityUtil.getCurrentUserId());
         DictUtil.clearCache();
         return ResultBuilder.buildOk("操作成功");
     }

@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.ObjectPostProcessor;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.authentication.configuration.EnableGlobalAuthentication;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
@@ -61,8 +62,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Resource
     public void configureGlobal(AuthenticationManagerBuilder auth) {
         try {
-            auth
-                    .userDetailsService(userDetailsService)
+            auth.userDetailsService(userDetailsService)
                     .passwordEncoder(passwordEncoder());
         } catch (Exception e) {
             throw new BeanInitializationException("Security configuration failed", e);
@@ -82,11 +82,15 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         String adminPath = albedoProperties.getAdminPath();
 
-        String[] permissAll = new String[SecurityConstants.authorizePermitAll.length];
+        String[] permissAll = new String[SecurityConstants.authorizePermitAll.length+SecurityConstants.authorizeAdminPermitAll.length];
 
-        for (int i = 0; i < permissAll.length; i++) {
-            permissAll[i] = PublicUtil.toAppendStr(adminPath, SecurityConstants.authorizePermitAll[i]);
+        for (int i = 0; i < SecurityConstants.authorizePermitAll.length; i++) {
+            permissAll[i] = SecurityConstants.authorizePermitAll[i];
         }
+        for (int i = SecurityConstants.authorizePermitAll.length,j=0; i < permissAll.length; i++,j++) {
+            permissAll[i] = adminPath+SecurityConstants.authorizeAdminPermitAll[j];
+        }
+
 
         http.addFilterBefore(corsFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling().authenticationEntryPoint(http401UnauthorizedEntryPoint)

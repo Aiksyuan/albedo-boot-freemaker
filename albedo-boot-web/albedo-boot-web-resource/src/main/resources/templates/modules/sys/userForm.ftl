@@ -24,6 +24,13 @@
             <div class="form-body">
                 <input type="hidden" name="id" value="${(userVo.id)!}"/>
                 <div class="form-group">
+                    <label class="control-label col-md-3">头像<span class="required">*</span>
+                    </label>
+                    <div class="col-md-5">
+                        <@albedo.fileInput name="avatar" value="${(userVo.avatar)!}" cssClass="required" type="image"> </@albedo.fileInput>
+                    </div>
+                </div>
+                <div class="form-group">
                     <label class="control-label col-md-3">所属组织<span
                             class="required">*</span>
                     </label>
@@ -32,6 +39,15 @@
                     value="${(userVo.orgId)!}" labelName="orgName"
                     labelValue="${(userVo.orgName)!}" title="选择组织"
                     url="${ctx}/sys/org/findTreeData"> </@albedo.treeSelect></div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label col-md-3">用户类型<span class="required">*</span>
+                    </label>
+                    <div class="col-md-5">
+                        <@albedo.form name="type"
+                        cssClass="required" boxType="radio" dictCode="sys_user_type"
+                        value="${(userVo.type)! }"> </@albedo.form>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="control-label col-md-3">登录Id<span class="required">*</span>
@@ -47,8 +63,8 @@
                     <div class="col-md-5">
                         <input id="newPassword" name="password" type="password" value=""
                                htmlEscape="false" maxlength="64"
-                               class="form-control ${(userVo.id)!'required'}"/> <#if (userVo.id)??><span
-                            class="help-inline">若不修改密码，请留空。</span></#if>
+                               class="form-control ${(userVo.id)!'required'}"/> <#if (userVo.id)??>
+                        <span class="help-inline">若不修改密码，请留空。</span></#if>
                     </div>
                 </div>
                 <div class="form-group">
@@ -57,6 +73,14 @@
                         <input name="confirmPassword" type="password" value=""
                                htmlEscape="false" maxlength="64" class="form-control"
                                equalTo="#newPassword"/>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label col-md-3">姓名<span class="required">*</span>
+                    </label>
+                    <div class="col-md-5">
+                        <input type="text" name="name" value="${(userVo.name)! }"
+                               maxlength="64" data-required="1" class="form-control required"/>
                     </div>
                 </div>
                 <div class="form-group">
@@ -86,6 +110,12 @@
                     <div class="col-md-8"><@albedo.form name="roleIdList"
                     cssClass="required" data="${allRoles!}" boxType="checkbox"
                     value="${(userVo.roleIds)! }"> </@albedo.form></div>
+                </div>
+                <div class="form-group">
+                    <label class="col-md-3 control-label">动态属性</label>
+                    <div class="col-md-8">
+                        <input type="text" name="property" value="${(userVo.property)! }" class="form-control"/>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="col-md-3 control-label">描述</label>

@@ -37,13 +37,14 @@ public class Http401UnauthorizedEntryPoint implements AuthenticationEntryPoint {
             ServletException {
 
         log.debug("Pre-authenticated entry point called. Rejecting access");
-        if (albedoProperties.getHttp().getRestful()
-                || albedoProperties.getMicroModel()
+        if (albedoProperties.getHttp().isRestful()
+                || albedoProperties.getGatewayModel()
                 || RequestUtil.isRestfulRequest(request)) {
-            BaseResource.writeJsonHttpResponse(CustomMessage.createError("权限不足或登录超时"), response);
+            BaseResource.writeJsonHttpResponse(CustomMessage.createDataError("error_token",
+                "权限不足或登录超时"), response);
 
         } else {
-            response.sendRedirect(PublicUtil.toAppendStr(albedoProperties.getAdminPath(), "/login"));
+            response.sendRedirect(PublicUtil.toAppendStr(request.getContextPath(), albedoProperties.getAdminPath(), "/login"));
         }
 
     }

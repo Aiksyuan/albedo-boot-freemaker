@@ -8,9 +8,9 @@ import com.albedo.java.modules.gen.domain.GenTable;
 import com.albedo.java.modules.gen.domain.xml.GenConfig;
 import com.albedo.java.modules.gen.service.GenSchemeService;
 import com.albedo.java.modules.gen.service.GenTableService;
-import com.albedo.java.modules.gen.util.GenUtil;
 import com.albedo.java.modules.sys.domain.Dict;
 import com.albedo.java.modules.sys.service.ModuleService;
+import com.albedo.java.util.GenUtil;
 import com.albedo.java.util.JsonUtil;
 import com.albedo.java.util.PublicUtil;
 import com.albedo.java.util.StringUtil;
@@ -45,13 +45,14 @@ import java.util.List;
 public class GenSchemeResource extends DataVoResource<GenSchemeService, GenSchemeVo> {
 
     @Resource
-    private GenSchemeService genSchemeService;
-
-    @Resource
     private GenTableService genTableService;
 
     @Resource
     private ModuleService moduleService;
+
+    public GenSchemeResource(GenSchemeService service) {
+        super(service);
+    }
 
     @GetMapping(value = "/")
     @Timed
@@ -66,7 +67,7 @@ public class GenSchemeResource extends DataVoResource<GenSchemeService, GenSchem
     @GetMapping(value = "/page")
     @Timed
     public ResponseEntity getPage(PageModel pm) {
-        genSchemeService.findPage(pm);
+        service.findPage(pm);
         JSON rs = JsonUtil.getInstance().setRecurrenceStr("genTable_name").toJsonObject(pm);
         return ResultBuilder.buildObject(rs);
     }
@@ -90,7 +91,7 @@ public class GenSchemeResource extends DataVoResource<GenSchemeService, GenSchem
         model.addAttribute("viewTypeList", FormDirective.convertComboDataList(config.getViewTypeList(), Dict.F_VAL, Dict.F_NAME));
 
         List<GenTable> tableList = genTableService.findAll(), list = Lists.newArrayList();
-        List<GenScheme> schemeList = genSchemeService.findAll(genSchemeVo.getId());
+        List<GenScheme> schemeList = service.findAll(genSchemeVo.getId());
         @SuppressWarnings("unchecked")
         List<String> tableIds = Collections3.extractToList(schemeList, "genTableId");
         for (GenTable table : tableList) {
@@ -98,16 +99,16 @@ public class GenSchemeResource extends DataVoResource<GenSchemeService, GenSchem
                 list.add(table);
             }
         }
-        model.addAttribute("tableList", FormDirective.convertComboDataList(list, GenTable.F_ID, GenTable.F_NAMESANDCOMMENTS));
+        model.addAttribute("tableList", FormDirective.convertComboDataList(list, GenTable.F_ID, GenTable.F_NAMESANDTITLE));
         return PublicUtil.toAppendStr("modules/gen/genSchemeForm", isModal ? "Modal" : "");
     }
 
     @PostMapping(value = "/edit", produces = MediaType.APPLICATION_JSON_VALUE)
     @Timed
     public ResponseEntity save(@Valid @RequestBody GenSchemeVo genSchemeVo) {
-        genSchemeService.save(genSchemeVo);
+        service.save(genSchemeVo);
         SecurityUtil.clearUserJedisCache();
-        if (genSchemeVo.getSyncModule()) {
+        if (genSchemeVo.getSyncModule()!=null && genSchemeVo.getSyncModule()) {
             GenTableVo genTableVo = genSchemeVo.getGenTable();
             if (genTableVo == null || PublicUtil.isEmpty(genTableVo.getClassName())) {
                 genTableVo = genTableService.findOneVo(genSchemeVo.getGenTableId());
@@ -118,8 +119,8 @@ public class GenSchemeResource extends DataVoResource<GenSchemeService, GenSchem
             SecurityUtil.clearUserJedisCache();
         }
         // 生成代码
-        if (genSchemeVo.getGenCode()) {
-            genSchemeService.generateCode(genSchemeVo);
+        if (genSchemeVo.getGenCode()!=null && genSchemeVo.getGenCode()) {
+            service.generateCode(genSchemeVo);
         }
         return ResultBuilder.buildOk("保存", genSchemeVo.getName(), "成功");
     }
@@ -129,7 +130,7 @@ public class GenSchemeResource extends DataVoResource<GenSchemeService, GenSchem
     @Timed
     public ResponseEntity lockOrUnLock(@PathVariable String ids) {
         log.debug("REST request to lockOrUnLock genTable: {}", ids);
-        genSchemeService.lockOrUnLock(Lists.newArrayList(ids.split(StringUtil.SPLIT_DEFAULT)));
+        service.lockOrUnLock(Lists.newArrayList(ids.split(StringUtil.SPLIT_DEFAULT)));
         SecurityUtil.clearUserJedisCache();
         return ResultBuilder.buildOk("操作成功");
     }
@@ -140,7 +141,7 @@ public class GenSchemeResource extends DataVoResource<GenSchemeService, GenSchem
     @Secured(AuthoritiesConstants.ADMIN)
     public ResponseEntity delete(@PathVariable String ids) {
         log.debug("REST request to delete User: {}", ids);
-        genSchemeService.delete(Lists.newArrayList(ids.split(StringUtil.SPLIT_DEFAULT)));
+        service.deleteBatchIds(Lists.newArrayList(ids.split(StringUtil.SPLIT_DEFAULT)));
         return ResultBuilder.buildOk("删除成功");
     }
 

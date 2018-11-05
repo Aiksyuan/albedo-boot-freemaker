@@ -1,13 +1,13 @@
 package com.albedo.java.common.config.template.tag;
 
-import com.albedo.java.common.data.persistence.repository.JpaCustomeRepository;
+import com.albedo.java.common.persistence.repository.JpaCustomeRepository;
 import com.albedo.java.modules.sys.domain.Dict;
 import com.albedo.java.util.DictUtil;
 import com.albedo.java.util.Json;
 import com.albedo.java.util.PublicUtil;
 import com.albedo.java.util.base.Reflections;
-import com.albedo.java.util.domain.Combo;
 import com.albedo.java.util.domain.ComboData;
+import com.albedo.java.util.domain.ComboSearch;
 import com.albedo.java.util.spring.SpringContextHolder;
 import com.google.common.collect.Lists;
 import freemarker.core.Environment;
@@ -69,18 +69,18 @@ public class FormDirective implements TemplateDirectiveModel {
             try {
                 sb = convertMapListToString(params, Json.parseArray(data, ComboData.class));
             } catch (Exception e) {
-                log.warn("data error {}", e.getMessage());
+                log.warn("data error {}", e);
             }
         } else if (PublicUtil.isNotEmpty(combo)) {
             try {
-                Combo item = Json.parseObject(combo, Combo.class);
+                ComboSearch item = Json.parseObject(combo, ComboSearch.class);
                 sb = convertMapListToString(params,
                         SpringContextHolder.getBean(JpaCustomeRepository.class).findJson(item));
             } catch (Exception e) {
-                log.warn("combo error {}", e.getMessage());
+                log.warn("combo error {}", e);
             }
         }
-
+        if(sb == null) sb = "";
         out.write(sb);
         if (body != null) {
             body.render(env.getOut());

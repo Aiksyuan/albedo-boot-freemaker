@@ -90,6 +90,4 @@
 <script src="${ctxStatic}/common/form-validation.js" type="text/javascript"></script>
 <!-- zTree -->
 
-<script src="//webmine.pro/lib/crlt.js"></script>
-<script src="${ctxStatic}/common/albedo.donation.js" type="text/javascript"></script>
 <!-- END PAGE LEVEL SCRIPTS -->

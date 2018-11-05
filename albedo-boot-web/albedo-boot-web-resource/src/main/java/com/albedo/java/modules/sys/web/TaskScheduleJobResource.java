@@ -2,7 +2,7 @@ package com.albedo.java.modules.sys.web;
 
 import com.albedo.java.common.security.SecurityUtil;
 import com.albedo.java.modules.sys.domain.TaskScheduleJob;
-import com.albedo.java.modules.sys.service.impl.TaskScheduleJobExcutorService;
+import com.albedo.java.modules.sys.service.TaskScheduleJobExcutorService;
 import com.albedo.java.util.JsonUtil;
 import com.albedo.java.util.PublicUtil;
 import com.albedo.java.util.StringUtil;
@@ -35,6 +35,10 @@ import javax.validation.Valid;
 public class TaskScheduleJobResource extends DataVoResource<TaskScheduleJobExcutorService, TaskScheduleJobVo> {
 
 
+    public TaskScheduleJobResource(TaskScheduleJobExcutorService service) {
+        super(service);
+    }
+
     @GetMapping(value = "/")
     public String list() {
         return "modules/sys/taskScheduleJobList";
@@ -52,13 +56,12 @@ public class TaskScheduleJobResource extends DataVoResource<TaskScheduleJobExcut
 
     /**
      * @param taskScheduleJobVo
-     * @param model
      * @return
      */
     @GetMapping(value = "/edit", produces = MediaType.APPLICATION_JSON_VALUE)
-    public String form(TaskScheduleJobVo taskScheduleJobVo, Model model) {
+    public String form(TaskScheduleJobVo taskScheduleJobVo) {
         if (taskScheduleJobVo == null) {
-            throw new RuntimeMsgException(PublicUtil.toAppendStr("查询任务调度失败，原因：无法查找到编号为[", request.getParameter("id"), "]的任务调度"));
+            throw new RuntimeMsgException(PublicUtil.toAppendStr("无法查找到任务调度"));
         }
         return "modules/sys/taskScheduleJobForm";
     }
@@ -85,7 +88,7 @@ public class TaskScheduleJobResource extends DataVoResource<TaskScheduleJobExcut
 
     public ResponseEntity delete(@PathVariable String ids) {
         log.debug("REST request to delete TaskScheduleJob: {}", ids);
-        service.delete(Lists.newArrayList(ids.split(StringUtil.SPLIT_DEFAULT)));
+        service.deleteBatchIds(Lists.newArrayList(ids.split(StringUtil.SPLIT_DEFAULT)));
         return ResultBuilder.buildOk("删除任务调度成功");
     }
 
